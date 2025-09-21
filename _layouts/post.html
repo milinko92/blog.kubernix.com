@@ -1,0 +1,21 @@
+---
+layout: default
+---
+<article class="card">
+  {% if page.image %}
+    <p><img src="{{ page.image | relative_url }}" alt="{{ page.title | escape }}"></p>
+  {% endif %}
+  <h1>{{ page.title }}</h1>
+  <div class="post-meta">{{ page.date | date: "%B %d, %Y" }}</div>
+  {{ content }}
+
+  {% if page.tags and page.tags != empty %}
+  <hr>
+  <div class="tags">
+    {% for tag in page.tags %}
+      {% assign slug = tag | downcase | replace: ' ', '-' %}
+      <a class="tag" href="{{ '/tags/#' | append: slug | relative_url }}">{{ tag }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</article>

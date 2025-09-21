@@ -1,0 +1,30 @@
+title: "Kubernix Blog"
+description: "Projects, guides and notes from my homelab"
+url: "" # set your production URL
+baseurl: ""
+
+markdown: kramdown
+kramdown:
+  input: GFM
+
+permalink: /:categories/:year/:month/:day/:title/
+
+plugins:
+  - jekyll-paginate
+  - jekyll-feed
+
+paginate: 8
+paginate_path: "/page:num/"
+timezone: Europe/Belgrade
+plugins:
+  - jekyll-paginate
+  - jekyll-feed
+
+
+# Excludes (optional)
+exclude:
+  - README.md
+  - .github
+  - Gemfile.lock
+
+timezone: Europe/Belgrade

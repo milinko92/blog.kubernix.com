@@ -1,0 +1,10 @@
+
+/* Kubernix branding */
+.brand {
+  display:flex; align-items:center; gap:.65rem;
+}
+.brand img.logo {
+  height: 40px; width: auto; display:block;
+  border-radius: 6px;
+}
+.brand .site-name { font-weight: 700; letter-spacing: .2px; }

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pi-hole & Unbound on Raspberry Pi · Kubernix Blog</title>
+<meta name="description" content="Pi-hole + Unbound on Raspberry Pi 4 (Homelab Guide)Network-wide ad blocking with a validating, recursive, caching DNS resolver.">
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="/assets/css/branding.css">
+<link rel="alternate" type="application/atom+xml" title="Kubernix Blog Feed" href="/feed.xml">
+
+    <link rel="stylesheet" href="/assets/css/branding.css">
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <div class="led blue"   style="top: 64px; left: 80px" aria-hidden="true"></div>
+    <div class="led accent" style="bottom: 120px; right: 120px" aria-hidden="true"></div>
+    <div class="led blue"   style="top: 22vh; left: 12vw; animation-delay: .4s" aria-hidden="true"></div>
+    <div class="led blue"   style="top: 48vh; left: 28vw; animation-delay: 1.1s" aria-hidden="true"></div>
+    <div class="led accent" style="top: 14vh; right: 18vw; animation-delay: 1.6s" aria-hidden="true"></div>
+    <div class="led blue"   style="bottom: 16vh; right: 8vw; animation-delay: .9s" aria-hidden="true"></div>
+    <div class="led accent" style="bottom: 32vh; left: 6vw; animation-delay: 1.9s" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="container nav">
+        <div class="brand">
+          <a href="/" style="display:inline-flex;align-items:center;gap:.65rem;text-decoration:none;color:inherit">
+            <img class="logo" src="/assets/img/kubernix.png" alt="Kubernix logo">
+            <span class="site-name">Kubernix Blog</span>
+          </a>
+        </div>
+        <nav class="menu">
+          <a href="/">Home</a>
+          
+            <a href="/about/">About</a>
+          
+            <a href="/tags/">Tags</a>
+          
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <article class="card">
+  
+    <p><img src="/assets/img/pi-hole-unbound.jpg" alt="Pi-hole &amp; Unbound on Raspberry Pi"></p>
+  
+  <h1>Pi-hole & Unbound on Raspberry Pi</h1>
+  <div class="post-meta">September 21, 2025</div>
+  <p><strong>Pi-hole + Unbound on Raspberry Pi 4 (Homelab Guide)</strong><br />
+<em>Network-wide ad blocking with a validating, recursive, caching DNS resolver.</em></p>
+
+<h2 id="introduction">Introduction</h2>
+<p>This document walks through step-by-step installation of Pi-hole (DNS sinkhole and ad blocker) on a Raspberry Pi 4, together with Unbound as a local recursive and validating DNS resolver. This combination ensures privacy, speed, and reliability – without relying on external DNS providers.</p>
+
+<h2 id="required-hardware">Required Hardware</h2>
+<ul>
+  <li>Raspberry Pi 4 (2–4 GB RAM recommended) + power supply</li>
+  <li>microSD (≥ 16 GB, A1/A2 class recommended)</li>
+  <li>Ethernet cable (more stable than Wi-Fi for DNS server)</li>
+  <li>Case + cooling (optional)</li>
+</ul>
+
+<h2 id="software-installation-steps">Software Installation Steps</h2>
+<p><strong>Flash Raspberry Pi OS Lite (64‑bit)</strong> using Raspberry Pi Imager. Enable SSH and set a hostname.</p>
+
+<p><strong>First login and system update:</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt update <span class="o">&amp;&amp;</span> <span class="nb">sudo </span>apt full-upgrade <span class="nt">-y</span>
+<span class="nb">sudo </span>reboot
+</code></pre></div></div>
+
+<p><strong>Set static IP address</strong> (example in <code class="language-plaintext highlighter-rouge">dhcpcd.conf</code>):</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>nano /etc/dhcpcd.conf
+
+<span class="c"># Example (adjust to your network):</span>
+interface eth0
+static <span class="nv">ip_address</span><span class="o">=</span>192.168.1.10/24
+static <span class="nv">routers</span><span class="o">=</span>192.168.1.1
+static <span class="nv">domain_name_servers</span><span class="o">=</span>127.0.0.1
+</code></pre></div></div>
+<blockquote>
+  <p>Note: For LAN DNS clients, the DHCP gateway should advertise this Pi-hole server’s IP.</p>
+</blockquote>
+
+<p><strong>Install Pi-hole (official installer):</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl <span class="nt">-sSL</span> https://install.pi-hole.net | bash
+</code></pre></div></div>
+<p>During installation, select the interface (<code class="language-plaintext highlighter-rouge">eth0</code>), static IP, and temporary upstream DNS (e.g., Quad9). We will later switch to Unbound.</p>
+
+<p><strong>Install Unbound:</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt <span class="nb">install</span> <span class="nt">-y</span> unbound
+</code></pre></div></div>
+<p><strong>Download root hints</strong> (optional cron for monthly refresh):</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo mkdir</span> <span class="nt">-p</span> /var/lib/unbound
+<span class="nb">sudo </span>wget <span class="nt">-O</span> /var/lib/unbound/root.hints https://www.internic.net/domain/named.root
+<span class="c"># (Optional) monthly auto-refresh:</span>
+<span class="nb">echo</span> <span class="s1">'0 3 1 * * root wget -qO /var/lib/unbound/root.hints https://www.internic.net/domain/named.root'</span> | <span class="nb">sudo tee</span> /etc/cron.d/unbound-root-hints
+</code></pre></div></div>
+
+<h2 id="configuration-steps">Configuration Steps</h2>
+<p><strong>Unbound configuration – create dedicated file:</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>nano /etc/unbound/unbound.conf.d/pi-hole.conf
+</code></pre></div></div>
+<div class="language-conf highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">server</span>:
+  <span class="n">verbosity</span>: <span class="m">0</span>
+  <span class="n">logfile</span>: <span class="s2">"/var/log/unbound/unbound.log"</span>
+  <span class="n">interface</span>: <span class="m">127</span>.<span class="m">0</span>.<span class="m">0</span>.<span class="m">1</span>
+  <span class="n">port</span>: <span class="m">5335</span>
+  <span class="n">do</span>-<span class="n">daemonize</span>: <span class="n">no</span>
+  <span class="n">use</span>-<span class="n">caps</span>-<span class="n">for</span>-<span class="n">id</span>: <span class="n">no</span>
+  <span class="n">edns</span>-<span class="n">buffer</span>-<span class="n">size</span>: <span class="m">1232</span>
+  <span class="n">prefetch</span>: <span class="n">yes</span>
+  <span class="n">qname</span>-<span class="n">minimisation</span>: <span class="n">yes</span>
+  <span class="n">harden</span>-<span class="n">dnssec</span>-<span class="n">stripped</span>: <span class="n">yes</span>
+  <span class="n">harden</span>-<span class="n">glue</span>: <span class="n">yes</span>
+  <span class="n">harden</span>-<span class="n">referral</span>-<span class="n">path</span>: <span class="n">yes</span>
+  <span class="n">aggressive</span>-<span class="n">nsec</span>: <span class="n">yes</span>
+  <span class="n">root</span>-<span class="n">hints</span>: <span class="s2">"/var/lib/unbound/root.hints"</span>
+  <span class="n">cache</span>-<span class="n">min</span>-<span class="n">ttl</span>: <span class="m">3600</span>
+  <span class="n">cache</span>-<span class="n">max</span>-<span class="n">ttl</span>: <span class="m">86400</span>
+  <span class="n">msg</span>-<span class="n">cache</span>-<span class="n">size</span>: <span class="m">128</span><span class="n">m</span>
+  <span class="n">rrset</span>-<span class="n">cache</span>-<span class="n">size</span>: <span class="m">256</span><span class="n">m</span>
+  <span class="n">so</span>-<span class="n">rcvbuf</span>: <span class="m">1</span><span class="n">m</span>
+  <span class="n">so</span>-<span class="n">sndbuf</span>: <span class="m">1</span><span class="n">m</span>
+  <span class="n">access</span>-<span class="n">control</span>: <span class="m">127</span>.<span class="m">0</span>.<span class="m">0</span>.<span class="m">0</span>/<span class="m">8</span> <span class="n">allow</span>
+</code></pre></div></div>
+<p><strong>Check config and start service:</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>unbound-checkconf
+<span class="nb">sudo </span>systemctl <span class="nb">enable</span> <span class="nt">--now</span> unbound
+</code></pre></div></div>
+
+<p><strong>Pi-hole → Upstream DNS = Unbound:</strong><br />
+In <code class="language-plaintext highlighter-rouge">http://&lt;IP-of-Pi&gt;/admin</code> → <strong>Settings</strong> → <strong>DNS</strong> enable <strong>Custom 1 (IPv4)</strong> and set:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>127.0.0.1#5335
+</code></pre></div></div>
+<p>Disable all other external upstream options so queries go only through Unbound.</p>
+
+<p><strong>DNSSEC:</strong> With Unbound as validator, you usually do <strong>not</strong> enable DNSSEC inside Pi-hole (Unbound already validates).</p>
+
+<p><strong>Disable conflicting services on port 53 (if any):</strong></p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>systemctl disable <span class="nt">--now</span> systemd-resolved
+</code></pre></div></div>
+
+<h2 id="verification--tests">Verification / Tests</h2>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Query Unbound directly</span>
+dig @127.0.0.1 <span class="nt">-p</span> 5335 example.com +dnssec +multi
+
+<span class="c"># Query via Pi-hole (port 53)</span>
+dig @127.0.0.1 example.com +dnssec +multi
+
+<span class="c"># Test DNSSEC validation</span>
+dig @127.0.0.1 <span class="nt">-p</span> 5335 dnssec-failed.org A +dnssec
+<span class="c"># Expect SERVFAIL (validation works)</span>
+</code></pre></div></div>
+
+<h2 id="troubleshooting-tips">Troubleshooting Tips</h2>
+<ul>
+  <li><strong>Port 53 in use?</strong> Check: <code class="language-plaintext highlighter-rouge">sudo ss -tulpn | grep :53</code>. Stop or reconfigure the conflicting service.</li>
+  <li><strong>Unbound not starting?</strong> Check logs: <code class="language-plaintext highlighter-rouge">sudo journalctl -u unbound -b</code>, and run <code class="language-plaintext highlighter-rouge">sudo unbound-checkconf</code>.</li>
+  <li><strong>Slow resolution?</strong> Ensure <code class="language-plaintext highlighter-rouge">edns-buffer-size ≤ 1232</code> and MTU settings are correct (try 1500/1492).</li>
+  <li><strong>Pi-hole not blocking?</strong> Update gravity: <code class="language-plaintext highlighter-rouge">pihole -g</code> and confirm LAN clients use the Pi-hole IP as DNS.</li>
+  <li><strong>DNSSEC problems?</strong> Test with <code class="language-plaintext highlighter-rouge">dnssec-failed.org</code>. If all queries fail, temporarily disable DNSSEC in Pi-hole (keep Unbound validating).</li>
+  <li><strong>Outdated root hints?</strong> Refresh manually or via cron job as shown above.</li>
+</ul>
+
+<h2 id="reference">Reference</h2>
+<p>Based on tutorial: <em>Crosstalk Solutions — The World’s Greatest Pi-hole + Unbound Tutorial (2023)</em>.</p>
+
+
+  
+  <hr>
+  <div class="tags">
+    
+      
+      <a class="tag" href="/tags/#pi-hole">pi-hole</a>
+    
+      
+      <a class="tag" href="/tags/#unbound">unbound</a>
+    
+      
+      <a class="tag" href="/tags/#raspberry-pi">raspberry pi</a>
+    
+      
+      <a class="tag" href="/tags/#dns">dns</a>
+    
+      
+      <a class="tag" href="/tags/#homelab">homelab</a>
+    
+  </div>
+  
+</article>
+
+    </main>
+
+    <footer class="site-footer container">
+      <div>&copy; 2025 Built with ❤️ for homelab tinkering.</div>
+    </footer>
+
+    <div class="back-to-top" id="backToTop" hidden>
+  <button aria-label="Back to top" title="Back to top">↑</button>
+</div>
+
+    <script src="/assets/js/main.js"></script>
+  </body>
+</html>
