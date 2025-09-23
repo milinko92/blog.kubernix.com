@@ -19,9 +19,9 @@ This document walks through step-by-step installation of Pi-hole (DNS sinkhole a
 - Case + cooling (optional)
 
 <div style="text-align:center">
-<img src="/assets/img/pi.jpg" alt="Networking diagram" style="max-width:300px; height:auto; margin-bottom:12px;">
+<img src="/assets/img/Pi.jpg" alt="Networking diagram" style="max-width:300px; height:auto; margin-bottom:12px;">
 
-<img src="/assets/img/pii.jpg
+<img src="/assets/img/Pii.jpg
 " alt="Networking diagram" style="max-width:300px; height:auto; margin-bottom:12px;">
 </div>
 
