@@ -2,7 +2,7 @@
 layout: post
 title: "Pi-hole & Unbound on Raspberry Pi"
 date: 2025-09-21
-image: /assets/img/pi-hole-unbound.jpg
+image: /assets/img/pihole-unbound.png
 tags: [pi-hole, unbound, raspberry pi, dns, homelab]
 ---
 
@@ -17,6 +17,13 @@ This document walks through step-by-step installation of Pi-hole (DNS sinkhole a
 - microSD (≥ 16 GB, A1/A2 class recommended)  
 - Ethernet cable (more stable than Wi-Fi for DNS server)  
 - Case + cooling (optional)
+
+<div style="text-align:center">
+<img src="/assets/img/pi.jpg" alt="Networking diagram" style="max-width:300px; height:auto; margin-bottom:12px;">
+
+<img src="/assets/img/pii.jpg
+" alt="Networking diagram" style="max-width:300px; height:auto; margin-bottom:12px;">
+</div>
 
 ## Software Installation Steps
 **Flash Raspberry Pi OS Lite (64‑bit)** using Raspberry Pi Imager. Enable SSH and set a hostname.
@@ -118,6 +125,10 @@ dig @127.0.0.1 example.com +dnssec +multi
 dig @127.0.0.1 -p 5335 dnssec-failed.org A +dnssec
 # Expect SERVFAIL (validation works)
 ```
+<div style="text-align:center">
+<img src="/assets/img/Dashboard.jpg" alt="Networking diagram" style="max-width:535px; height:auto; margin-bottom:12px;">
+
+</div>
 
 ## Troubleshooting Tips
 - **Port 53 in use?** Check: `sudo ss -tulpn | grep :53`. Stop or reconfigure the conflicting service.  
